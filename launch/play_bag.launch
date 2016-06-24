@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+
+    <node pkg = "rosbag" type = "play" name = "player" args = "/home/ubuntu/catkin_ws/src/zed-ros-wrapper-master/bag/zed_2_23_06.bag" />
+<!--
+    <node pkg = "zed_ros"  
+    <node name="rviz"  pkg="rviz"  type="rviz"  output="screen"/>                   
+-->
+</launch>
