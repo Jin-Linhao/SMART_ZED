@@ -63,13 +63,13 @@ add_definitions(-std=c++11)# -m64) #-Wall)
 
 
 add_executable(
-  zed_image_converter_node_m
+  zed_smart
   src/img_converter.cpp
 )
 
 
 target_link_libraries(
-  zed_image_converter_node_m
+  zed_smart
         ${catkin_LIBRARIES}
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}  
