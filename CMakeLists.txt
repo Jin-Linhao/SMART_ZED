@@ -86,6 +86,28 @@ target_link_libraries(
         ${PCL_LIBRARIES}  
     )
 
+add_executable(
+  sub_pcl_node
+  src/sub_point_cloud.cpp
+)
+target_link_libraries(
+  sub_pcl_node
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}  
+    )
+
+
+add_executable(
+  pixel_rec_node
+  src/pixel_recorder.cpp
+)
+target_link_libraries(
+  pixel_rec_node
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}  
+    )
 
 
 #add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)

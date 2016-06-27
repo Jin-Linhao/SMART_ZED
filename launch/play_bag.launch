@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-	<node pkg = "rosbag" type = "play" name = "player" args = "-l /home/eee/catkin_ws/src/SMART_ZED/bag/test.bag" />
-	<!-- <node pkg="zed_smart" type="depth_viewer_node" name="depth_viewer_node" output="screen"/> -->
+	<node pkg = "rosbag" type = "play" name = "player" args = "-l /home/eee/catkin_ws/src/SMART_ZED/bag/depth_img2.bag" />
+	<node pkg="zed_smart" type="depth_viewer_node" name="depth_viewer_node" output="screen"/>
 
 
 </launch>
