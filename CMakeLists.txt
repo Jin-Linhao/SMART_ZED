@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.7)
 
-project(smart_zed)
+project(zed_smart)
 ###############################################################################
 ## Options
 option( DEBUG_ACTIVE "Enable Debug build" ON )
@@ -74,6 +74,19 @@ target_link_libraries(
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}  
     )
+
+add_executable(
+  depth_viewer_node
+  src/depth_viewer.cpp
+)
+target_link_libraries(
+  depth_viewer_node
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}  
+    )
+
+
 
 #add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 ###############################################################################

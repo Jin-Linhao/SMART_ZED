@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>smart_zed</name>
+  <name>zed_smart</name>
   <version>0.0.0</version>
   <description>The zed_ros package</description>
   <maintainer email="jin_linhao@hotmail.com">Jin-Linhao</maintainer>

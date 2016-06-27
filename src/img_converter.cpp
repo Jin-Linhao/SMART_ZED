@@ -68,7 +68,7 @@ public:
   //Process images
   if(mono8_img.rows != float_img.rows || mono8_img.cols != float_img.cols)
     {
-      mono8_img = cv::Mat(float_img.size(), CV_8UC3);
+      mono8_img = cv::Mat(float_img.size(), CV_8U);
     }
   cv::convertScaleAbs(float_img, mono8_img, 100, 0.0);
   //The following doesn't work due to NaNs
@@ -103,7 +103,8 @@ public:
     cv::Mat depth_mono8_img;
     depthToCV8UC1(depth_float_img, depth_mono8_img);
     msg_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", depth_mono8_img).toImageMsg();
-    image_pub_.publish(msg_img);   
+    // // imshow("display", msg_img);
+    // image_pub_.publish(msg_img);   
   }
 
 };
