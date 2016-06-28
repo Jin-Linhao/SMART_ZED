@@ -9,21 +9,43 @@
 using namespace std;
 using namespace cv;
 
-Mat src, erosion_dst, dilation_dst;
+class Depth_viewer
+{ 
+ public:                                                      //public functions
+	Depth_viewer()                                         //declare a constructor, same name as the class name.
 
-int erosion_elem = 0;
-int erosion_size = 0;
-int dilation_elem = 0;
-int dilation_size = 0;
-int const max_elem = 2;
-int const max_kernel_size = 21;
+		{
+		 min_range_ = 0.5;
+		 max_range_ = 10.5; 
+		}
+	Mat img_filter(Mat);                              //member function declaration
+	void depthCb(const sensor_msgs::ImageConstPtr&);
+	void image_show(Mat);
+	Mat img_erosion;
+	Mat img_dilation;
+	Mat img_blur;
+    Mat filt_img;
+    double min_range_;
+    double max_range_; 
+};
 
 
-static const char WINDOW_NAME[] = "Depth View";
-double min_range_;
-double max_range_;
 
-void depthCb( const sensor_msgs::ImageConstPtr& image )
+
+Mat Depth_viewer::img_filter(Mat img_origin)                                               //member function definition
+{
+	Mat element = getStructuringElement (1, Size(5,5), Point(2,2));  // how to assign this value in constructor???
+	GaussianBlur(img_origin, img_blur, Size(5,5), 0, 0);
+	erode(img_blur, img_erosion, element);
+	dilate(img_erosion, img_dilation, element);
+
+	return(img_erosion);
+}
+
+
+
+
+void Depth_viewer::depthCb(const sensor_msgs::ImageConstPtr& image)         //?????
 {
     // convert to cv image
     cv_bridge::CvImagePtr bridge;
@@ -34,6 +56,7 @@ void depthCb( const sensor_msgs::ImageConstPtr& image )
     catch (cv_bridge::Exception& e)
     {
         ROS_ERROR("Failed to transform depth image.");
+        cout<<"error in subscribing image"<<endl;
         return;
     }
 
@@ -49,19 +72,16 @@ void depthCb( const sensor_msgs::ImageConstPtr& image )
             Ii[j] = (char) (255 - Ii[j]);
         }   
     }
+    //display
+    filt_img = Depth_viewer::img_filter(img);
+    Depth_viewer::image_show(filt_img);
+    // return (img);
+}
 
-    // display
-
-    // cv::imshow(WINDOW_NAME, img);
-    // cv::waitKey(1);
-
-    // cout << "img = "<< endl << " "  << img << endl << endl;
-    // cout << "========================================" << endl << endl;
-    Mat img_blur;
-    GaussianBlur(img, img_blur, Size(5,5), 0, 0);
-    imshow(WINDOW_NAME, img_blur);
-    waitKey(1);
-
+void Depth_viewer::image_show(Mat img_show)
+{
+	cv::imshow("image_show", img_show);
+	cv::waitKey(1);
 }
 
 int main( int argc, char* argv[] )
@@ -70,12 +90,13 @@ int main( int argc, char* argv[] )
     ros::NodeHandle n;
     ros::NodeHandle nh("~");
 
-    nh.param("min_range", min_range_, 0.0);
-    nh.param("max_range", max_range_, 20.0);
-
-    cv::namedWindow(WINDOW_NAME);
+    Depth_viewer depth_viewer;
+    nh.param("min_range", depth_viewer.min_range_, 0.5);
+    nh.param("max_range", depth_viewer.max_range_, 10.5);
     
-    ros::Subscriber sub = n.subscribe("/camera/depth/image_rect_color", 3, &depthCb);
-    ros::spin();
-}
+    ros::Subscriber sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depthCb, &depth_viewer);
 
+
+    ros::spin();
+
+}
