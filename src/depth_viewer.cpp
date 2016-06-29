@@ -20,9 +20,15 @@ class Depth_viewer
 		}
 	Mat img_filter(Mat);                              //member function declaration
 	void depthCb(const sensor_msgs::ImageConstPtr&);
-	void image_show(Mat);
-	Mat img_erosion;
-	Mat img_dilation;
+	void image_show(Mat, Mat);
+
+	Mat img_erosion1;
+	Mat img_dilation1;
+    Mat img_erosion2;
+    Mat img_dilation2;
+    Mat img_erosion3;
+    Mat img_dilation3;
+    Mat img_threshold;
 	Mat img_blur;
     Mat filt_img;
     double min_range_;
@@ -34,12 +40,21 @@ class Depth_viewer
 
 Mat Depth_viewer::img_filter(Mat img_origin)                                               //member function definition
 {
-	Mat element = getStructuringElement (1, Size(5,5), Point(2,2));  // how to assign this value in constructor???
-	GaussianBlur(img_origin, img_blur, Size(5,5), 0, 0);
-	erode(img_blur, img_erosion, element);
-	dilate(img_erosion, img_dilation, element);
+	Mat element_large = getStructuringElement(1, Size(15,15), Point(6,6)),
+        element_middle = getStructuringElement(1, Size(9,9), Point(4,4)),
+        element_small = getStructuringElement(1, Size(5,5), Point(2,2));  // how to assign this value in constructor???
+	// GaussianBlur(img_origin, img_blur, Size(3,3), 0, 0);
+	erode(img_origin, img_erosion1, element_middle);
+	dilate(img_erosion1, img_dilation1, element_large);
+    GaussianBlur(img_dilation1, img_blur, Size(7,7), 0, 0);
+    // erode(img_dilation1, img_erosion2, element_middle);
+    // dilate(img_erosion2, img_dilation2, element_middle);
+    // erode(img_erosion2, img_erosion3, element_large);
+    // dilate(img_erosion3, img_dilation3, element_large);
 
-	return(img_erosion);
+    threshold(img_blur, img_threshold, 115, 255, 0);
+
+	return(img_threshold);
 }
 
 
@@ -74,15 +89,17 @@ void Depth_viewer::depthCb(const sensor_msgs::ImageConstPtr& image)         //??
     }
     //display
     filt_img = Depth_viewer::img_filter(img);
-    Depth_viewer::image_show(filt_img);
+    Depth_viewer::image_show(filt_img, img);
     // return (img);
 }
 
-void Depth_viewer::image_show(Mat img_show)
+void Depth_viewer::image_show(Mat img_show, Mat img_origin)
 {
-	cv::imshow("image_show", img_show);
-	cv::waitKey(1);
+	imshow("image_proc", img_show);
+    imshow("image_origin", img_origin);
+	waitKey(1);
 }
+
 
 int main( int argc, char* argv[] )
 {
