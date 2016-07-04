@@ -26,6 +26,7 @@ class Depth_viewer
 	void image_show(Mat, Mat, Mat, Mat);
     Mat horizontal_line_detection(Mat);
     Mat vertical_line_detection(Mat);
+    void rot90(Mat &, int);
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
 
@@ -104,6 +105,25 @@ Mat Depth_viewer::vertical_line_detection(Mat bw)
 
 
 
+void Depth_viewer::rot90(Mat &matImage, int rotflag)
+{
+  //1=CW, 2=CCW, 3=180
+  if (rotflag == 1){
+    transpose(matImage, matImage);  
+    flip(matImage, matImage,1); //transpose+flip(1)=CW
+  } else if (rotflag == 2) {
+    transpose(matImage, matImage);  
+    flip(matImage, matImage,0); //transpose+flip(0)=CCW     
+  } else if (rotflag ==3){
+    flip(matImage, matImage,-1);    //flip(-1)=180          
+  } else if (rotflag != 0){ //if not 0,1,2,3:
+    cout  << "Unknown rotation flag(" << rotflag << ")" << endl;
+  }
+  //to keep original image, using cv::Mat matRotated = matImage.clone();
+}
+
+
+
 void Depth_viewer::depthCb(const sensor_msgs::ImageConstPtr& image)         //?????
 {
     // convert to cv image
@@ -135,7 +155,9 @@ void Depth_viewer::depthCb(const sensor_msgs::ImageConstPtr& image)         //??
     filt_img = Depth_viewer::img_filter(img);
     horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
     vertical_img = Depth_viewer::vertical_line_detection(img);
+    Depth_viewer::rot90(img, 1);
     Depth_viewer::image_show(filt_img, img, horizontal_img, vertical_img);
+
     // Depth_viewer::segmentation(filt_img, img);
     // Depth_viewer::laplacian(filt_img);
     // return (img);
@@ -171,6 +193,10 @@ int main( int argc, char* argv[] )
 
     ros::spin();
 }
+
+
+
+
 
 
 
