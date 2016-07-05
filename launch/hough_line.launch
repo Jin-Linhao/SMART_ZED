@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="zed_smart" type="hough_line_node" name="hough_line_node" output="screen"/>
+
+
+</launch>
