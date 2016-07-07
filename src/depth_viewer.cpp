@@ -42,17 +42,18 @@ class Depth_viewer
 
 Mat Depth_viewer::img_filter(Mat img_origin)                                               //member function definition
 {
-	Mat element_large = getStructuringElement(1, Size(13,13), Point(6,6)),
+	Mat element_large = getStructuringElement(1, Size(11,11), Point(6,6)),
         element_medium = getStructuringElement(1, Size(9,9), Point(4,4)),
-        element_small = getStructuringElement(1, Size(5,5), Point(2,2));  // how to assign this value in constructor???
+        element_small = getStructuringElement(1, Size(5,5), Point(2,2)),
+        element_rect = getStructuringElement(0, Size(5,19), Point(-1, -1));
 	// GaussianBlur(img_origin, img_blur, Size(3,3), 0, 0);
 	// erode(img_origin, img_erosion1, element_medium);
  //    // fastNlMeansDenoisingMulti(img_erosion1, img_fast, 3, 7, 21);
-	// dilate(img_erosion1, img_dilation1, element_medium);
+	dilate(img_origin, img_dilation1, element_medium);
  //    dilate(img_dilation1, img_dilation2, element_small);
- //    // erode(img_erosion2, img_erosion3, element_large);
- //    GaussianBlur(img_dilation2, img_blur, Size(15,15), 0, 0);
-    threshold(img_origin, img_threshold, 180, 255, 0);
+    erode(img_dilation1, img_erosion1, element_medium);
+    GaussianBlur(img_erosion1, img_blur, Size(15,15), 0, 0);
+    threshold(img_blur, img_threshold, 180, 255, 0);
 
 	return(img_threshold);
 }
@@ -63,8 +64,8 @@ Mat Depth_viewer::horizontal_line_detection(Mat bw)
 {
     Mat edges, smooth, kernel = Mat::ones(2, 2, CV_8UC1);
     Mat horizontal = bw.clone();
-    int horizontalsize = horizontal.cols / 30;
-    Mat horizontalStructure = getStructuringElement(MORPH_RECT, Size(horizontalsize,1));
+    int horizontalsize = horizontal.cols / 40;
+    Mat horizontalStructure = getStructuringElement(MORPH_RECT, Size(horizontalsize,2));
 
     erode(horizontal, horizontal, horizontalStructure, Point(-1, -1));
     dilate(horizontal, horizontal, horizontalStructure, Point(-1, -1));
@@ -88,8 +89,8 @@ Mat Depth_viewer::vertical_line_detection(Mat bw)
 
     Mat edges, smooth, kernel = Mat::ones(2, 2, CV_8UC1);
     Mat vertical = bw.clone();
-    int verticalsize = vertical.rows / 30;
-    Mat verticalStructure = getStructuringElement(MORPH_RECT, Size( 1,verticalsize));
+    int verticalsize = vertical.rows / 40;
+    Mat verticalStructure = getStructuringElement(MORPH_RECT, Size( 2,verticalsize));
 
     erode(vertical, vertical, verticalStructure, Point(-1, -1));
     dilate(vertical, vertical, verticalStructure, Point(-1, -1));
@@ -129,9 +130,9 @@ void Depth_viewer::rot90(Mat &matImage, int rotflag)
 Mat Depth_viewer::getROI(Mat src)
 {
     int x = 50,
-        y = 200, 
+        y = 150, 
         width = 300,
-        height = 200;
+        height = 250;
 
     Mat ROI;
     ROI = src(Rect(x, y, width, height));
@@ -145,27 +146,36 @@ void Depth_viewer::identify(Mat horizontal, Mat vertical)
     double horizontal_num, vertical_num, ratio;
 
     horizontal_num = countNonZero(horizontal);
-    cout << "horizontal num is ("<< horizontal_num <<")" << endl;
+    //cout << "horizontal num is ("<< horizontal_num <<")" << endl;
     vertical_num = countNonZero(vertical);
     ratio = vertical_num/(horizontal_num + vertical_num +1);
-    cout << "vertical num is ("<< vertical_num <<")" << endl;
+    // cout << "vertical num is ("<< vertical_num <<")" << endl;
 
-    cout << "The ratio is (" << ratio << ")" << endl;
 
-    if (ratio <= 0.2)
+    if (vertical_num >= 600)
     {
-        cout << "Barrier is down" << endl;
-    }
-    else if (ratio >= 0.9)
-    {
-        cout << "Barrier is upright" << endl;
+        cout << "horizontal num is ("<< horizontal_num <<")" << endl;
+        cout << "vertical num is ("<< vertical_num <<")" << endl;
+        cout << "The ratio is (" << ratio << ")" << endl;
+        if (ratio >= 0.8)
+        {
+            cout << "Barrier is down" << endl;
+        }
+        else if (ratio <= 0.2)
+        {
+            cout << "Barrier is upright" << endl;
+        }
+        else
+        {
+            cout << "The Barrier is moving" << endl;
+        }
     }
     else
     {
-        cout << "The Barrier is moving" << endl;
+        cout << "No barrier detected" << endl;
     }
-
 }
+
 
 
 void Depth_viewer::depth_call_back(const sensor_msgs::ImageConstPtr& image)         //?????
@@ -197,12 +207,13 @@ void Depth_viewer::depth_call_back(const sensor_msgs::ImageConstPtr& image)     
     }
     //display
     filt_img = Depth_viewer::img_filter(img);
+    Depth_viewer::rot90(filt_img, 2);
     horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
     vertical_img = Depth_viewer::vertical_line_detection(filt_img);
     // Depth_viewer::rot90(img, 2);
     // img  = Depth_viewer::getROI(img);
-    Depth_viewer::rot90(vertical_img, 2);
-    Depth_viewer::rot90(horizontal_img, 2);   
+    // Depth_viewer::rot90(vertical_img, 2);
+    // Depth_viewer::rot90(horizontal_img, 2);   
     vertical_seg  = Depth_viewer::getROI(vertical_img);
     horizontal_seg = Depth_viewer::getROI(horizontal_img);
     Depth_viewer::image_show(filt_img, vertical_seg, horizontal_seg, horizontal_img, vertical_img);
@@ -217,7 +228,7 @@ void Depth_viewer::depth_call_back(const sensor_msgs::ImageConstPtr& image)     
 
 void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg, Mat horizontal, Mat vertical)
 {
-	// imshow("image_proc", img_show);
+	imshow("image_proc", img_show);
     imshow("horizontal_seg", horizontal_seg);
     imshow("vertical_seg", vertical_seg);
     // imshow("horizontal", horizontal);    
