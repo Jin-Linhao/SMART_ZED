@@ -109,6 +109,30 @@ target_link_libraries(
         ${PCL_LIBRARIES}  
     )
 
+add_executable(
+  hough_line_node
+  src/hough_line.cpp
+)
+target_link_libraries(
+  hough_line_node
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}  
+    )
+
+
+add_executable(
+  new_hough_node
+  src/new_hough.cpp
+)
+target_link_libraries(
+  new_hough_node
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}  
+    )
+
+
 
 #add_dependencies(zed_wrapper_node ${PROJECT_NAME}_gencfg)
 ###############################################################################
