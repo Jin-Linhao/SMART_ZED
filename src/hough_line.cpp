@@ -31,6 +31,7 @@ int p_trackbar = max_trackbar;
 void help();
 void Standard_Hough( int, void* );
 void Probabilistic_Hough( int, void* );
+void draw_line( Mat, Point, Point);
 
 /**
  * @function main
@@ -38,7 +39,7 @@ void Probabilistic_Hough( int, void* );
 int main( int, char** )
 {
    /// Read the image
-   src = imread( "/home/eee/catkin_ws/src/SMART_ZED/data/pic/barrier2.jpg", 1 );
+   src = imread( "/home/eee/catkin_ws/src/SMART_ZED/data/pic/utown_barrier.jpeg", 1 );
 
    if( src.empty() )
      { help();
@@ -82,7 +83,7 @@ void help()
 /**
  * @function Standard_Hough
  */
-void Standard_Hough( int, void* )
+void Standard_Hough( int, void* )//returns a vector (theta and r-theta)
 {
   vector<Vec2f> s_lines;
   cvtColor( edges, standard_hough, CV_GRAY2BGR );
@@ -100,7 +101,8 @@ void Standard_Hough( int, void* )
 
        Point pt1( cvRound(x0 + alpha*(-sin_t)), cvRound(y0 + alpha*cos_t) );
        Point pt2( cvRound(x0 - alpha*(-sin_t)), cvRound(y0 - alpha*cos_t) );
-       line( standard_hough, pt1, pt2, Scalar(255,0,0), 3, CV_AA);
+       line( standard_hough, pt1, pt2, Scalar(255,0,0), 3, CV_AA); //draw a line from pt1 to pt2
+       //rectangle (standard hough, )
      }
 
    imshow( standard_name, standard_hough );
@@ -109,7 +111,7 @@ void Standard_Hough( int, void* )
 /**
  * @function Probabilistic_Hough
  */
-void Probabilistic_Hough( int, void* )
+void Probabilistic_Hough( int, void* ) // more efficient, gives the extremes of detected lines(x0,y0 and x1,y1), slightly better for implementation
 {
   vector<Vec4i> p_lines;
   cvtColor( edges, probabilistic_hough, CV_GRAY2BGR );
@@ -121,8 +123,25 @@ void Probabilistic_Hough( int, void* )
   for( size_t i = 0; i < p_lines.size(); i++ )
      {
        Vec4i l = p_lines[i];
-       line( probabilistic_hough, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(255,0,0), 3, CV_AA);
+       line( probabilistic_hough, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
+       rectangle( probabilistic_hough, Point(l[0], l[1]+10), Point(l[2], l[3]-10), Scalar(255, 255, 0), 1, 1);
      }
 
    imshow( probabilistic_name, probabilistic_hough );
 }
+
+
+
+void draw_line(Mat img, Point start, Point end)
+{
+  int thickness = 2;
+  int lineType = 8;
+  line( img,
+        start,
+        end,
+        Scalar(255,0,0),
+        thickness,
+        lineType);
+}
+
+
