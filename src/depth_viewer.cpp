@@ -41,7 +41,7 @@ class Depth_viewer
     Mat horizontal_img, vertical_img, horizontal_seg, vertical_seg;
     double min_range_,  max_range_; 
     Vec4i l;
-    Mat img;
+    Mat depth_img_msg;
 };
 
 
@@ -55,11 +55,11 @@ Mat Depth_viewer::img_filter(Mat img_origin)                                    
 	// GaussianBlur(img_origin, img_blur, Size(3,3), 0, 0);
 	// erode(img_origin, img_erosion1, element_medium);
  //    // fastNlMeansDenoisingMulti(img_erosion1, img_fast, 3, 7, 21);
-	dilate(img_origin, img_dilation1, element_medium);
+	// dilate(img_origin, img_dilation1, element_medium);
  //    dilate(img_dilation1, img_dilation2, element_small);
-    erode(img_dilation1, img_erosion1, element_medium);
-    GaussianBlur(img_erosion1, img_blur, Size(15,15), 0, 0);
-    threshold(img_blur, img_threshold, 180, 255, 0);
+    // erode(img_dilation1, img_erosion1, element_medium);
+    // GaussianBlur(img_erosion1, img_blur, Size(15,15), 0, 0);
+    threshold(img_origin, img_threshold, 180, 255, 0);
 
 	return(img_threshold);
 }
@@ -222,11 +222,11 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     }
 
     // convert to something visible
-    Mat img(bridge->image.rows, bridge->image.cols, CV_8UC1);
+    Mat depth_img_msg(bridge->image.rows, bridge->image.cols, CV_8UC1);
     for(int i = 0; i < bridge->image.rows; i++)
     {
         float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
-        char* Ii = img.ptr<char>(i);//get ith row of img, index Ii
+        char* Ii = depth_img_msg.ptr<char>(i);//get ith row of img, index Ii
         for(int j = 0; j < bridge->image.cols; j++)
         {   
             Ii[j] = (char) (255*((Di[j]-min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
@@ -239,7 +239,7 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
 
 void Depth_viewer::detection()
     {
-        filt_img = Depth_viewer::img_filter(img);
+        filt_img = Depth_viewer::img_filter(depth_img_msg);
         Depth_viewer::rot90(filt_img, 2);
         horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
         vertical_img = Depth_viewer::vertical_line_detection(filt_img);
