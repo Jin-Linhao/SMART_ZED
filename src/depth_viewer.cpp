@@ -8,6 +8,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include <iomanip>
+#include <std_msgs/Int32MultiArray.h>
+
 
 using namespace std;
 using namespace cv;
@@ -22,13 +24,15 @@ class Depth_viewer
 		 max_range_ = 10.5; 
 		}
 	Mat img_filter(Mat);                              //member function declaration
-	void depth_call_back(const sensor_msgs::ImageConstPtr&);
+	void depth_callback(const sensor_msgs::ImageConstPtr&);
+    void hough_line_callback(const std_msgs::Int32MultiArray&);
 	void image_show(Mat, Mat, Mat, Mat, Mat);
     Mat horizontal_line_detection(Mat);
     Mat vertical_line_detection(Mat);
     void rot90(Mat &, int);
     Mat getROI(Mat);
     void identify(Mat, Mat);
+    void detection();
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
 
@@ -36,6 +40,8 @@ class Depth_viewer
     Mat img_threshold,  img_blur,      filt_img,     img_fast;
     Mat horizontal_img, vertical_img, horizontal_seg, vertical_seg;
     double min_range_,  max_range_; 
+    Vec4i l;
+    Mat img;
 };
 
 
@@ -178,7 +184,29 @@ void Depth_viewer::identify(Mat horizontal, Mat vertical)
 
 
 
-void Depth_viewer::depth_call_back(const sensor_msgs::ImageConstPtr& image)         //?????
+void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_array)
+{
+    for( size_t i = 0; i < p_lines_array.data.size(); i++ )
+    {
+
+        l[i] = p_lines_array.data[i];
+    }
+//     double gradient;
+//     if (l[2] - l[0] == 0.0)
+//     {
+//      gradient = 1000.0;
+//     }
+//        else
+//     {
+//      gradient = (l[3] - l[1])/(l[2] - l[0]);
+//     }
+//        cout<<"l[0]="<<l[0]<<" l[1]="<<l[1]<<" l[2]="<<l[2]<<" l[3]="<<l[3]<<" gradient="<<gradient <<endl;
+//        line( probabilistic_hough, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
+//        rectangle( probabilistic_hough, Point(l[0]+10, l[1]+30), Point(l[2]-10, l[3]-30), Scalar(255, 255, 0), 1, 1);
+}
+ 
+
+void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)         //?????
 {
     // convert to cv image
     cv_bridge::CvImagePtr bridge;
@@ -206,23 +234,27 @@ void Depth_viewer::depth_call_back(const sensor_msgs::ImageConstPtr& image)     
         }   
     }
     //display
-    filt_img = Depth_viewer::img_filter(img);
-    Depth_viewer::rot90(filt_img, 2);
-    horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
-    vertical_img = Depth_viewer::vertical_line_detection(filt_img);
-    // Depth_viewer::rot90(img, 2);
-    // img  = Depth_viewer::getROI(img);
-    // Depth_viewer::rot90(vertical_img, 2);
-    // Depth_viewer::rot90(horizontal_img, 2);   
-    vertical_seg  = Depth_viewer::getROI(vertical_img);
-    horizontal_seg = Depth_viewer::getROI(horizontal_img);
-    Depth_viewer::image_show(filt_img, vertical_seg, horizontal_seg, horizontal_img, vertical_img);
-    Depth_viewer::identify(vertical_seg, horizontal_seg);
+}
 
+
+void Depth_viewer::detection()
+    {
+        filt_img = Depth_viewer::img_filter(img);
+        Depth_viewer::rot90(filt_img, 2);
+        horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
+        vertical_img = Depth_viewer::vertical_line_detection(filt_img);
+        // Depth_viewer::rot90(img, 2);
+        // img  = Depth_viewer::getROI(img);
+        // Depth_viewer::rot90(vertical_img, 2);
+        // Depth_viewer::rot90(horizontal_img, 2);   
+        vertical_seg  = Depth_viewer::getROI(vertical_img);
+        horizontal_seg = Depth_viewer::getROI(horizontal_img);
+        Depth_viewer::image_show(filt_img, vertical_seg, horizontal_seg, horizontal_img, vertical_img);
+        Depth_viewer::identify(vertical_seg, horizontal_seg);
+    }
     // Depth_viewer::segmentation(filt_img, img);
     // Depth_viewer::laplacian(filt_img);
     // return (img);
-} 
 
 
 
@@ -240,7 +272,6 @@ void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg
 
 
 
-
 int main( int argc, char* argv[] )
 {
     ros::init( argc, argv, "depth_viewer_node" );
@@ -248,10 +279,13 @@ int main( int argc, char* argv[] )
     ros::NodeHandle nh("~");
 
     Depth_viewer depth_viewer;
+    // Hough_line hough_line;
+
     nh.param("min_range", depth_viewer.min_range_, 0.5);
     nh.param("max_range", depth_viewer.max_range_, 10.5);
     
-    ros::Subscriber sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depth_call_back, &depth_viewer);
+    ros::Subscriber depth_sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depth_callback, &depth_viewer);
+    ros::Subscriber hough_line_sub = n.subscribe("/camera/rgb/image_rect_color", 3, &Depth_viewer::hough_line_callback, &depth_viewer);
 
     ros::spin();
 }
