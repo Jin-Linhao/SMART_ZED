@@ -22,6 +22,11 @@ class Depth_viewer
 		{
 		 min_range_ = 0.5;
 		 max_range_ = 10.5; 
+
+         line_vector[0] = 50;
+         line_vector[1] = 350;
+         line_vector[2] = 150;
+         line_vector[3] = 400;
 		}
 	Mat img_filter(Mat);                              //member function declaration
 	void depth_callback(const sensor_msgs::ImageConstPtr&);
@@ -39,9 +44,9 @@ class Depth_viewer
 	Mat img_erosion1,   img_dilation1, img_erosion2, img_dilation2;
     Mat img_threshold,  img_blur,      filt_img,     img_fast;
     Mat horizontal_img, vertical_img, horizontal_seg, vertical_seg;
-    double min_range_,  max_range_; 
-    Vec4i l;
-    Mat depth_img_msg;
+    double min_range_,  max_range_, gradient; 
+    Vec4i line_vector;
+    Mat depth_img;
 };
 
 
@@ -135,10 +140,10 @@ void Depth_viewer::rot90(Mat &matImage, int rotflag)
 
 Mat Depth_viewer::getROI(Mat src)
 {
-    int x = 50,
-        y = 150, 
-        width = 300,
-        height = 250;
+    int x = line_vector[0],
+        y = line_vector[1], 
+        width = line_vector[1]-line_vector[0],
+        height = line_vector[3]-line_vector[2];
 
     Mat ROI;
     ROI = src(Rect(x, y, width, height));
@@ -189,18 +194,18 @@ void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_
     for( size_t i = 0; i < p_lines_array.data.size(); i++ )
     {
 
-        l[i] = p_lines_array.data[i];
+        line_vector[i] = p_lines_array.data[i];
     }
 //     double gradient;
-//     if (l[2] - l[0] == 0.0)
-//     {
-//      gradient = 1000.0;
-//     }
-//        else
-//     {
-//      gradient = (l[3] - l[1])/(l[2] - l[0]);
-//     }
-//        cout<<"l[0]="<<l[0]<<" l[1]="<<l[1]<<" l[2]="<<l[2]<<" l[3]="<<l[3]<<" gradient="<<gradient <<endl;
+    if (line_vector[2] - line_vector[0] == 0.0)
+    {
+     gradient = 1000.0;
+    }
+       else
+    {
+     gradient = (line_vector[3] - line_vector[1])/(line_vector[2] - line_vector[0]);
+    }
+       // cout<<"l[0]="<<l[0]<<" l[1]="<<l[1]<<" l[2]="<<l[2]<<" l[3]="<<l[3]<<" gradient="<<gradient <<endl;
 //        line( probabilistic_hough, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
 //        rectangle( probabilistic_hough, Point(l[0]+10, l[1]+30), Point(l[2]-10, l[3]-30), Scalar(255, 255, 0), 1, 1);
 }
@@ -222,11 +227,11 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     }
 
     // convert to something visible
-    Mat depth_img_msg(bridge->image.rows, bridge->image.cols, CV_8UC1);
+    Mat depth_img(bridge->image.rows, bridge->image.cols, CV_8UC1);
     for(int i = 0; i < bridge->image.rows; i++)
     {
         float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
-        char* Ii = depth_img_msg.ptr<char>(i);//get ith row of img, index Ii
+        char* Ii = depth_img.ptr<char>(i);//get ith row of img, index Ii
         for(int j = 0; j < bridge->image.cols; j++)
         {   
             Ii[j] = (char) (255*((Di[j]-min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
@@ -239,7 +244,7 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
 
 void Depth_viewer::detection()
     {
-        filt_img = Depth_viewer::img_filter(depth_img_msg);
+        filt_img = Depth_viewer::img_filter(depth_img);
         Depth_viewer::rot90(filt_img, 2);
         horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
         vertical_img = Depth_viewer::vertical_line_detection(filt_img);
@@ -260,6 +265,9 @@ void Depth_viewer::detection()
 
 void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg, Mat horizontal, Mat vertical)
 {
+    line( img_show, Point(line_vector[0], line_vector[1]), Point(line_vector[2], line_vector[3]), Scalar(0,0,255), 3, CV_AA);
+    rectangle( img_show, Point(line_vector[0]+10, line_vector[1]+30), Point(line_vector[2]-10, line_vector[3]-30), Scalar(255, 255, 0), 1, 1);
+
 	imshow("image_proc", img_show);
     imshow("horizontal_seg", horizontal_seg);
     imshow("vertical_seg", vertical_seg);
