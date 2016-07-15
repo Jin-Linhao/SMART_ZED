@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <sensor_msgs/image_encodings.h>
 #include <std_msgs/Int32MultiArray.h>
+#include <cmath>
 
 using namespace cv;
 using namespace std;
@@ -29,11 +30,20 @@ class Line_detection
     void hough_line_callback( const sensor_msgs::ImageConstPtr& image );
     void help();
     void draw_line( Mat, Point, Point );
-    void publish_vector( vector<Vec4i>  );
+    void publish_vector();
+    void image_show();
+    double cal_Euclidean(int, int, int, int);
+
 
     //ros header
     ros::Publisher  pub;
     ros::Subscriber sub; 
+
+    Mat probabilistic_hough;
+    Mat src, edges;
+    Mat src_gray, edges_rgb;
+    vector<Vec4i> p_lines;
+    //Vec4i line_vector = p_lines[i];
 };
 
 
@@ -42,9 +52,8 @@ class Line_detection
 
 void Line_detection::hough_line_callback( const sensor_msgs::ImageConstPtr& image )
 {
-    Mat src, edges;
-    Mat src_gray;
-    Mat probabilistic_hough;
+
+    //Mat probabilistic_hough;
 
     // convert to cv image
     cv_bridge::CvImagePtr bridge;
@@ -66,14 +75,15 @@ void Line_detection::hough_line_callback( const sensor_msgs::ImageConstPtr& imag
      }
 
    /// Pass the image to gray
-   cvtColor( bridge->image, src_gray, COLOR_RGB2GRAY );
+   cvtColor( bridge->image, probabilistic_hough, COLOR_RGB2GRAY );
 
    /// Apply Canny edge detector
-   Canny( src_gray, edges, 50, 200, 3 );
+   Canny( probabilistic_hough, edges, 50, 200, 3 );
 
-   vector<Vec4i> p_lines;
-   HoughLinesP( edges, p_lines, 1, CV_PI/180, 155, 150, 10 );
-   Line_detection::publish_vector(p_lines);
+   // vector<Vec4i> p_lines;
+   HoughLinesP( edges, p_lines, 1, CV_PI/180, 155, 150, 5 );
+   //cout << edges.size() <<endl;
+   Line_detection::publish_vector();
 
    return;
 }
@@ -85,19 +95,40 @@ void Line_detection::help()
 {
   printf("\t Hough Transform to detect lines \n ");
   printf("\t---------------------------------\n ");
-  printf(" Usage: roslaunch zed_smart hough_line.launch\n");
+  printf("\t Usage: roslaunch zed_smart hough_line.launch\n");
   printf(" rostopic echo /hough_line\n");
 }
 
 
 
+double Line_detection::cal_Euclidean(int x1, int y1, int x2, int y2)
+{
+  double dis_Euclidean;
+  dis_Euclidean = sqrt(pow((x2 - x1),2.0)+pow((y2 - y1), 2.0));
+  return dis_Euclidean;
+}
 
-void Line_detection::publish_vector( vector<Vec4i> p_lines)
+
+
+void Line_detection::publish_vector()
 {
   /// Show the result
+  double max_dis;
+  Vec4i max_line_vector;
   for( size_t i = 0; i < p_lines.size(); i++ )
      {
-       Vec4i l = p_lines[i];
+  	//cout<<"p_lines size"<<p_lines.size()<<endl;	
+        Vec4i line_vector = p_lines[i];
+
+        double line_dis = Line_detection::cal_Euclidean(line_vector[0], line_vector[1], line_vector[2], line_vector[3]);
+        if (line_dis >= max_dis)
+        {
+          max_dis = line_dis;
+          max_line_vector = line_vector;
+        }
+      }
+
+	
  //       double gradient;
  //       if (l[2] - l[0] == 0.0)
 	// {
@@ -107,37 +138,36 @@ void Line_detection::publish_vector( vector<Vec4i> p_lines)
 	// {
 	//  gradient = (l[3] - l[1])/(l[2] - l[0]);
 	// }
- //       cout<<"l[0]="<<l[0]<<" l[1]="<<l[1]<<" l[2]="<<l[2]<<" l[3]="<<l[3]<<" gradient="<<gradient <<endl;
- //       line( probabilistic_hough, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
- //       rectangle( probabilistic_hough, Point(l[0]+10, l[1]+30), Point(l[2]-10, l[3]-30), Scalar(255, 255, 0), 1, 1);
+   // cout<<"l[0]="<<line_vector[0]<<" l[1]="<<line_vector[1]<<" l[2]="<<line_vector[2]<<" l[3]="<<line_vector[3]<<endl;
+     cvtColor( edges, edges_rgb, COLOR_GRAY2RGB );
+     line(edges_rgb, Point(max_line_vector[0], max_line_vector[1]), Point(max_line_vector[2], max_line_vector[3]), Scalar(0,0,255), 3, CV_AA);
+     rectangle(edges_rgb, Point(max_line_vector[0]+10, max_line_vector[1]+30), Point(max_line_vector[2]-10, max_line_vector[3]-30), Scalar(255, 255, 0), 1, 1);
 
 
- //   imshow( probabilistic_name, probabilistic_hough );
- //   waitKey(1);
+     imshow( probabilistic_name, edges_rgb );
+     waitKey(1);
+      if (max_dis != 0)
+      {
 
-   std_msgs::Int32MultiArray p_lines_array;
-   p_lines_array.data.push_back(l[0]);
-   p_lines_array.data.push_back(l[1]);
-   p_lines_array.data.push_back(l[2]);
-   p_lines_array.data.push_back(l[3]);
+           std_msgs::Int32MultiArray p_lines_array;
+           p_lines_array.data.push_back(max_line_vector[0]);
+           p_lines_array.data.push_back(max_line_vector[1]);
+           p_lines_array.data.push_back(max_line_vector[2]);
+           p_lines_array.data.push_back(max_line_vector[3]);
 
-   pub.publish(p_lines_array);
-  }
+           pub.publish(p_lines_array);
+     }
 }
 
 
-
-void Line_detection::draw_line(Mat img, Point start, Point end)
+void Line_detection::image_show()
 {
-  int thickness = 2;
-  int lineType = 8;
-  line( img,
-        start,
-        end,
-        Scalar(255,0,0),
-        thickness,
-        lineType);
+   // line( probabilistic_hough, Point(line_vector[0], line_vector[1]), Point(line_vector[2], line_vector[3]), Scalar(0,0,255), 3, CV_AA);
+    //rectangle( probabilistic_hough, Point(line_vector[0]+10, line_vector[1]+30), Point(line_vector[2]-10, line_vector[3]-30), Scalar(255, 255, 0), 1, 1);
+
+    //waitKey(1);
 }
+
 
 
 
@@ -149,7 +179,7 @@ int main( int argc, char* argv[] )
 
     Line_detection line_detection;
 
-    line_detection.pub = n.advertise<std_msgs::Int32MultiArray>("hough_line",1);
+    line_detection.pub = n.advertise<std_msgs::Int32MultiArray>("hough_line",100);
     line_detection.sub = n.subscribe("/camera/rgb/image_rect_color", 100, &Line_detection::hough_line_callback, &line_detection);
 
     ros::spin();
@@ -177,4 +207,18 @@ int main( int argc, char* argv[] )
                                                               // maxLineGap: The maximum gap between two points to be considered in the same line.
 // }
 //   return p_lines;
+
+
+
+//void Line_detection::draw_line(Mat img, Point start, Point end)
+//{
+//  int thickness = 2;
+//  int lineType = 8;
+//  line( img,
+//        start,
+//        end,
+//        Scalar(255,0,0),
+//        thickness,
+//        lineType);
+//}
 
