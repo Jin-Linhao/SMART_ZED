@@ -140,8 +140,8 @@ void Line_detection::publish_vector()
 	// }
    // cout<<"l[0]="<<line_vector[0]<<" l[1]="<<line_vector[1]<<" l[2]="<<line_vector[2]<<" l[3]="<<line_vector[3]<<endl;
      cvtColor( edges, edges_rgb, COLOR_GRAY2RGB );
-     line(edges_rgb, Point(max_line_vector[0], max_line_vector[1]), Point(max_line_vector[2], max_line_vector[3]), Scalar(0,0,255), 3, CV_AA);
-     rectangle(edges_rgb, Point(max_line_vector[0]+10, max_line_vector[1]+30), Point(max_line_vector[2]-10, max_line_vector[3]-30), Scalar(255, 255, 0), 1, 1);
+     line(edges_rgb, Point(max_line_vector[0]+10, max_line_vector[1]), Point(max_line_vector[2], max_line_vector[3]), Scalar(0,0,255), 3, CV_AA);
+     rectangle(edges_rgb, Point(max_line_vector[0]-30, max_line_vector[1]+30), Point(max_line_vector[2]+30, max_line_vector[3]-30), Scalar(255, 255, 0), 1, 1);
 
 
      imshow( probabilistic_name, edges_rgb );

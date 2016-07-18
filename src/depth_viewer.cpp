@@ -144,18 +144,18 @@ Mat Depth_viewer::getROI(Mat src)
     if (line_vector[0] <= line_vector[2] && line_vector[1] <= line_vector[3])
 	{
 	    int x = line_vector[0], //x-start
-		y = line_vector[1], //y-start
-		width = line_vector[2]-line_vector[0],  //x-end - x-start
-		height = line_vector[3]-line_vector[1]; //y-end - y-start
+		    y = line_vector[1], //y-start
+		    width = line_vector[2]-line_vector[0],  //x-end - x-start
+		    height = line_vector[3]-line_vector[1]; //y-end - y-start
 
 	    ROI = src(Rect(x, y, width, height));
 	}
     else
 	{
 	    int x = line_vector[0], //x-start
-		y = line_vector[3], //y-start
-		width = line_vector[2]-line_vector[0],  //x-end - x-start
-		height = line_vector[1]-line_vector[3]; //y-end - y-start
+		    y = line_vector[3], //y-start
+		    width = line_vector[2]-line_vector[0],  //x-end - x-start
+		    height = line_vector[1]-line_vector[3]; //y-end - y-start
 	    ROI = src(Rect(x, y, width, height));
 	}
     return ROI;
