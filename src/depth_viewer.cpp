@@ -23,10 +23,10 @@ class Depth_viewer
 		 min_range_ = 0.5;
 		 max_range_ = 10.5; 
 
-         line_vector[0] = 50;
-         line_vector[1] = 350;
-         line_vector[2] = 150;
-         line_vector[3] = 400;
+         line_vector[0] = 250;
+         line_vector[1] = 50;
+         line_vector[2] = 350;
+         line_vector[3] = 450;
 		}
 	Mat img_filter(Mat);                              //member function declaration
 	void depth_callback(const sensor_msgs::ImageConstPtr&);
@@ -37,6 +37,7 @@ class Depth_viewer
     void rot90(Mat &, int);
     Mat getROI(Mat);
     void identify(Mat, Mat);
+    int check_ROI();
     // void detection();
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
@@ -46,6 +47,8 @@ class Depth_viewer
     Mat horizontal_img, vertical_img, horizontal_seg, vertical_seg;
     double min_range_,  max_range_, gradient; 
     Vec4i line_vector;
+    int x1, y1, x2, y2;
+    float mean_dis;
     // Mat depth_img;
 };
 
@@ -141,31 +144,63 @@ void Depth_viewer::rot90(Mat &matImage, int rotflag)
 Mat Depth_viewer::getROI(Mat src)
 {
     Mat ROI;
+
     if (line_vector[0] <= line_vector[2] && line_vector[1] <= line_vector[3])
 	{
-	    int x = line_vector[0], //x-start
-		    y = line_vector[1], //y-start
-		    width = line_vector[2]-line_vector[0],  //x-end - x-start
-		    height = line_vector[3]-line_vector[1]; //y-end - y-start
-
-	    ROI = src(Rect(x, y, width, height));
-	}
+	        x1 = line_vector[0], y1 = line_vector[1],  //x-start, y-start
+		    x2 = line_vector[2], y2 = line_vector[3];  //x-end, y-end
+    }
     else
-	{
-	    int x = line_vector[0], //x-start
-		    y = line_vector[3], //y-start
-		    width = line_vector[2]-line_vector[0],  //x-end - x-start
-		    height = line_vector[1]-line_vector[3]; //y-end - y-start
-	    ROI = src(Rect(x, y, width, height));
-	}
+    {
+            x1 = line_vector[0], y1 = line_vector[3], //x-start, y-start
+            x2 = line_vector[2], y2 = line_vector[1];
+    }               
+        x1, y1, x2, y2 = check_ROI();
+        int width = x2 - x1,  
+		    height = y2 - y1;
+
+	    ROI = src(Rect(x1, y1, width, height));
+
     return ROI;
+}
+
+
+
+int Depth_viewer::check_ROI()
+{
+    if (x1 < 0)
+    {
+        x1 = 0;
+    }
+    else if (y1 < 0)
+    {
+        y1 = 0;
+    }
+    else if (x1 < 0 && y1 < 0)
+    {
+        x1 = y1 = 0;
+    }
+    else if (x2 > 640)
+    {
+        x2 > 640;
+    }
+    else if (y2 > 480)
+    {
+        y2 = 480;
+    }
+    else if (x2 > 640 && y2 > 480)
+    {
+        x2 = 640, y2 = 480;
+    }
+
+    return (x1, y1, x2, y2);
 }
 
 
 
 void Depth_viewer::identify(Mat horizontal, Mat vertical)
 {
-    double horizontal_num, vertical_num, ratio;
+    float horizontal_num, vertical_num, ratio;
 
     horizontal_num = countNonZero(horizontal);
     //cout << "horizontal num is ("<< horizontal_num <<")" << endl;
@@ -207,7 +242,7 @@ void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_
 
         line_vector[i] = p_lines_array.data[i];
     }
-//     double gradient;
+//     float gradient;
     if (line_vector[2] - line_vector[0] == 0.0)
     {
      gradient = 1000.0;
@@ -239,6 +274,8 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
 
     // convert to something visible
     Mat depth_img_msg(bridge->image.rows, bridge->image.cols, CV_8UC1);
+    float total_dis = 0;
+    int total_dis_num = 0;
     //cout << depth_img << endl;
     for(int i = 0; i < bridge->image.rows; i++)
     {
@@ -250,10 +287,26 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
             Ii[j] = (char) (255*((Di[j] - min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
             Ii[j] = (char) (255 - Ii[j]);
         }   
-
     }
+
+    for (int i = x1; i < (x2); i++)
+    {
+        float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
+        for(int j = y1; j < (y2); j++)
+        {
+            if (Di[j] > 0)
+            {
+                total_dis = total_dis + Di[j];
+                total_dis_num  = total_dis_num + 1;
+            }
+        }
+    }
+    mean_dis = total_dis/(float)total_dis_num;
+
+    cout << "The average distance is "<< mean_dis << endl;
 //    depth_img_msg.copyTo(depth_img);    
-    cout << (float) depth_img_msg.at<uchar>(100,100) << endl;
+
+    // cout << (float) bridge->image.at<float>(100,100) << endl;           
     //display
 //}
 
@@ -285,7 +338,7 @@ void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg
     if (!img_show.empty() && !horizontal_seg.empty() && !vertical_seg.empty())
 	{
     	line( img_show, Point(line_vector[0], line_vector[1]), Point(line_vector[2], line_vector[3]), Scalar(0,0,255), 3, CV_AA);
-    	rectangle( img_show, Point(line_vector[0], line_vector[1]), Point(line_vector[2], line_vector[3]), Scalar(255, 255, 0), 1, 1);
+    	rectangle( img_show, Point(x1, y1), Point(x2, y2), Scalar(255, 255, 0), 1, 1);
 
     	imshow("image_proc", img_show);
     	imshow("horizontal_seg", horizontal_seg);

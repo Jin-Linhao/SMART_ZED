@@ -81,7 +81,7 @@ void Line_detection::hough_line_callback( const sensor_msgs::ImageConstPtr& imag
    Canny( probabilistic_hough, edges, 50, 200, 3 );
 
    // vector<Vec4i> p_lines;
-   HoughLinesP( edges, p_lines, 1, CV_PI/180, 155, 150, 5 );
+   HoughLinesP( edges, p_lines, 1, CV_PI/180, 155, 150, 10 );
    //cout << edges.size() <<endl;
    Line_detection::publish_vector();
 
@@ -117,7 +117,7 @@ void Line_detection::publish_vector()
   Vec4i max_line_vector;
   for( size_t i = 0; i < p_lines.size(); i++ )
      {
-  	//cout<<"p_lines size"<<p_lines.size()<<endl;	
+  	// cout<<"p_lines size"<<p_lines.size()<<endl;	
         Vec4i line_vector = p_lines[i];
 
         double line_dis = Line_detection::cal_Euclidean(line_vector[0], line_vector[1], line_vector[2], line_vector[3]);
@@ -140,10 +140,12 @@ void Line_detection::publish_vector()
 	// }
    // cout<<"l[0]="<<line_vector[0]<<" l[1]="<<line_vector[1]<<" l[2]="<<line_vector[2]<<" l[3]="<<line_vector[3]<<endl;
      cvtColor( edges, edges_rgb, COLOR_GRAY2RGB );
-     line(edges_rgb, Point(max_line_vector[0]+10, max_line_vector[1]), Point(max_line_vector[2], max_line_vector[3]), Scalar(0,0,255), 3, CV_AA);
+     line(edges_rgb, Point(max_line_vector[0], max_line_vector[1]), Point(max_line_vector[2], max_line_vector[3]), Scalar(0,0,255), 3, CV_AA);
+     // rectangle(edges_rgb, Point(max_line_vector[0], max_line_vector[1]), Point(max_line_vector[2], max_line_vector[3]), Scalar(255, 255, 0), 1, 1);
+     //good rectangle
      rectangle(edges_rgb, Point(max_line_vector[0]-30, max_line_vector[1]+30), Point(max_line_vector[2]+30, max_line_vector[3]-30), Scalar(255, 255, 0), 1, 1);
-
-
+     
+     // cout << edges_rgb.size() << endl;
      imshow( probabilistic_name, edges_rgb );
      waitKey(1);
       if (max_dis != 0)
