@@ -42,7 +42,6 @@ class Depth_viewer
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
 
-	Mat img_erosion1,   img_dilation1, img_erosion2, img_dilation2;
     Mat img_threshold,  img_blur,      filt_img,     img_fast;
     Mat horizontal_img, vertical_img, horizontal_seg, vertical_seg;
     double min_range_,  max_range_, gradient; 
@@ -280,21 +279,26 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     for(int i = 0; i < bridge->image.rows; i++)
     {
         float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
-        char* Ii = depth_img_msg.ptr<char>(i);//get ith row of img, index Ii
+        unsigned char* Ii = depth_img_msg.ptr<unsigned char>(i);//get ith row of img, index Ii
         for(int j = 0; j < bridge->image.cols; j++)
         {   
             // cout << Di[j]<<" ";
-            Ii[j] = (char) (255*((Di[j] - min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
-            Ii[j] = (char) (255 - Ii[j]);
+            Ii[j] = (unsigned char) (255*((Di[j] - min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
+            Ii[j] = (unsigned char) (255 - Ii[j]);
         }   
     }
 
     for (int i = x1; i < (x2); i++)
     {
         float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
+        unsigned char* Ii = depth_img_msg.ptr<unsigned char>(i);
         for(int j = y1; j < (y2); j++)
         {
-            if (Di[j] > 0)
+            Ii[j] = (unsigned char) (255*((Di[j] - min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
+            Ii[j] = (unsigned char) (255 - Ii[j]);
+            //cout << (unsigned int)Ii[j]<<endl;
+
+            if (Di[j] > 0 && (unsigned int) (Ii[j]) > 160)
             {
                 total_dis = total_dis + Di[j];
                 total_dis_num  = total_dis_num + 1;
