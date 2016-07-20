@@ -69,10 +69,9 @@ Mat Depth_viewer::img_filter(Mat img_origin)                                    
  //    dilate(img_dilation1, img_dilation2, element_small);
     // erode(img_dilation1, img_erosion1, element_medium);
     // GaussianBlur(img_erosion1, img_blur, Size(15,15), 0, 0);\
-        cout<<"thres:"<<thresholding_value<<endl;
-        cout<<"100"<<endl;
+
     threshold(img_origin, thresholded_image, thresholding_value, 255, 0);
-    cout<<"filtering now"<<endl;
+
 
 	return(thresholded_image);
 }
@@ -152,13 +151,13 @@ Mat Depth_viewer::getROI(Mat src)
 
     if (line_vector[0] <= line_vector[2] && line_vector[1] <= line_vector[3])
 	{
-	        x1 = line_vector[0] - 10, y1 = line_vector[1] - 10,  //x-start, y-start
-		    x2 = line_vector[2] + 10, y2 = line_vector[3] + 10;  //x-end, y-end
+	        x1 = line_vector[0] - 5, y1 = line_vector[1] - 5,  //x-start, y-start
+		    x2 = line_vector[2] + 5, y2 = line_vector[3] + 5;  //x-end, y-end
     }
     else
     {
-            x1 = line_vector[0] - 10, y1 = line_vector[3] - 10, //x-start, y-start
-            x2 = line_vector[2] + 10, y2 = line_vector[1] + 10;
+            x1 = line_vector[0] - 5, y1 = line_vector[3] - 5, //x-start, y-start
+            x2 = line_vector[2] + 5, y2 = line_vector[1] + 5;
     }               
         x1, y1, x2, y2 = check_ROI();
         int width = x2 - x1,  
@@ -210,22 +209,23 @@ void Depth_viewer::identify(Mat horizontal, Mat vertical)
     horizontal_num = countNonZero(horizontal);
     //cout << "horizontal num is ("<< horizontal_num <<")" << endl;
     vertical_num = countNonZero(vertical);
-    ratio = vertical_num/(horizontal_num + vertical_num +1);
+    ratio = horizontal_num/(horizontal_num + vertical_num +1);
     // cout << "vertical num is ("<< vertical_num <<")" << endl;
+    int area  = (x2 - x1)*(y2 - y1)*0.05;
+    // cout <<"area: " << area <<endl;
 
-
-    if (vertical_num >= 600)
+    if (vertical_num >= 20)
     {
-        cout << "horizontal num is ("<< horizontal_num <<")" << endl;
-        cout << "vertical num is ("<< vertical_num <<")" << endl;
-        cout << "The ratio is (" << ratio << ")" << endl;
-        if (ratio >= 0.8)
+        // cout << "horizontal num is ("<< horizontal_num <<")" << endl;
+        // cout << "vertical num is ("<< vertical_num <<")" << endl;
+        // cout << "The ratio is (" << ratio << ")" << endl;
+        if (ratio >= 0.9)
         {
-            cout << "Barrier is down" << endl;
+            cout << "Barrier is down"<< endl;
         }
-        else if (ratio <= 0.2)
+        else if (ratio <= 0.3)
         {
-            cout << "Barrier is upright" << endl;
+            cout <<  "Barrier is upright" << endl;
         }
         else
         {
@@ -341,7 +341,7 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     // if (mean_horizontal_dis <= 6)
     // {
         cout << "The average distance is "<< mean_horizontal_dis << endl; 
-        cout << "The total distance number is "<< total_dis_num << endl;        
+        // cout << "The total distance number is "<< total_dis_num << endl;        
     // }
      
     // else
@@ -349,9 +349,8 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     //     cout << "The barrier is either too far or NaN" << endl;
     // }     
 
-        cout<<"filtering begin"<<endl;
+
         filt_img = Depth_viewer::img_filter(depth_img_msg3);
-        cout<<"filtering end"<<endl;
         //Depth_viewer::rot90(filt_img, 2);
         horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
         vertical_img = Depth_viewer::vertical_line_detection(filt_img);
