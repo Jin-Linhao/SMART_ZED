@@ -29,27 +29,28 @@ class Depth_viewer
          line_vector[3] = 450;
          thresholding_value = 130;
 		}
-	Mat img_filter(Mat);                              //member function declaration
+
+    //member function declaration
+	Mat  img_filter(Mat);
 	void depth_callback(const sensor_msgs::ImageConstPtr&);
     void hough_line_callback(const std_msgs::Int32MultiArray&);
 	void image_show(Mat, Mat, Mat, Mat, Mat);
-    Mat horizontal_line_detection(Mat);
-    Mat vertical_line_detection(Mat);
+    Mat  horizontal_line_detection(Mat);
+    Mat  vertical_line_detection(Mat);
     void rot90(Mat &, int);
-    Mat getROI(Mat);
+    Mat  getROI(Mat);
     void identify(Mat, Mat);
-    int check_ROI();
+    int  check_ROI();
     // void detection();
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
 
-    Mat img_threshold,  img_blur,     filt_img,       img_fast;
-    Mat horizontal_img, vertical_img, horizontal_seg, vertical_seg;
-    double min_range_,  max_range_,   gradient; 
+    //global variables
+    Mat   img_threshold,  img_blur,     filt_img,       img_fast;
+    Mat   horizontal_img, vertical_img, horizontal_seg, vertical_seg;
+    float min_range_,     max_range_,   gradient,       mean_dis; 
     Vec4i line_vector;
-    int x1, y1, x2, y2;
-    float mean_dis;
-    int thresholding_value;// = 130;
+    int   x1, y1, x2, y2, thresholding_value;;
     // Mat depth_img;
 };
 
@@ -58,21 +59,12 @@ class Depth_viewer
 Mat Depth_viewer::img_filter(Mat img_origin)                                               //member function definition
 {
     Mat thresholded_image;
-	Mat element_large = getStructuringElement(1, Size(11,11), Point(6,6)),
-        element_medium = getStructuringElement(1, Size(9,9), Point(4,4)),
-        element_small = getStructuringElement(1, Size(5,5), Point(2,2)),
-        element_rect = getStructuringElement(0, Size(5,19), Point(-1, -1));
-	// GaussianBlur(img_origin, img_blur, Size(3,3), 0, 0);
-	// erode(img_origin, img_erosion1, element_medium);
- //    // fastNlMeansDenoisingMulti(img_erosion1, img_fast, 3, 7, 21);
-	// dilate(img_origin, img_dilation1, element_medium);
- //    dilate(img_dilation1, img_dilation2, element_small);
-    // erode(img_dilation1, img_erosion1, element_medium);
-    // GaussianBlur(img_erosion1, img_blur, Size(15,15), 0, 0);\
+	// Mat element_large = getStructuringElement(1, Size(11,11), Point(6,6)),
+ //        element_medium = getStructuringElement(1, Size(9,9), Point(4,4)),
+ //        element_small = getStructuringElement(1, Size(5,5), Point(2,2)),
+ //        element_rect = getStructuringElement(0, Size(5,19), Point(-1, -1));
 
     threshold(img_origin, thresholded_image, thresholding_value, 255, 0);
-
-
 	return(thresholded_image);
 }
 
@@ -131,13 +123,19 @@ void Depth_viewer::rot90(Mat &matImage, int rotflag)
   //1=CW, 2=CCW, 3=180
   if (rotflag == 1){
     transpose(matImage, matImage);  
-    flip(matImage, matImage,1); //transpose+flip(1)=CW
-  } else if (rotflag == 2) {
+    flip(matImage, matImage,1);     //transpose+flip(1)=CW
+  } 
+  else if (rotflag == 2) 
+  {
     transpose(matImage, matImage);  
-    flip(matImage, matImage,0); //transpose+flip(0)=CCW     
-  } else if (rotflag ==3){
+    flip(matImage, matImage,0);     //transpose+flip(0)=CCW     
+  } 
+  else if (rotflag ==3)
+  {
     flip(matImage, matImage,-1);    //flip(-1)=180          
-  } else if (rotflag != 0){ //if not 0,1,2,3:
+  } 
+  else if (rotflag != 0)
+  {                                 //if not 0,1,2,3:
     cout  << "Unknown rotation flag(" << rotflag << ")" << endl;
   }
   //to keep original image, using cv::Mat matRotated = matImage.clone();
@@ -159,9 +157,9 @@ Mat Depth_viewer::getROI(Mat src)
             x1 = line_vector[0] - 5, y1 = line_vector[3] - 5, //x-start, y-start
             x2 = line_vector[2] + 5, y2 = line_vector[1] + 5;
     }               
-        x1, y1, x2, y2 = check_ROI();
-        int width = x2 - x1,  
-		    height = y2 - y1;
+    x1, y1, x2, y2 = check_ROI();
+    int width = x2 - x1,  
+	    height = y2 - y1;
 
 	    ROI = src(Rect(x1, y1, width, height));
 
@@ -204,32 +202,28 @@ int Depth_viewer::check_ROI()
 
 void Depth_viewer::identify(Mat horizontal, Mat vertical)
 {
-    float horizontal_num, vertical_num, ratio;
-
-    horizontal_num = countNonZero(horizontal);
-    //cout << "horizontal num is ("<< horizontal_num <<")" << endl;
-    vertical_num = countNonZero(vertical);
-    ratio = horizontal_num/(horizontal_num + vertical_num +1);
-    // cout << "vertical num is ("<< vertical_num <<")" << endl;
-    int area  = (x2 - x1)*(y2 - y1)*0.05;
+    float horizontal_num = countNonZero(horizontal), 
+          vertical_num = countNonZero(vertical),
+          ratio = horizontal_num/(horizontal_num + vertical_num +1);
+    int   area  = (x2 - x1)*(y2 - y1)*0.0025;
     // cout <<"area: " << area <<endl;
 
-    if (vertical_num >= 20)
+    if (vertical_num >= area)
     {
-        // cout << "horizontal num is ("<< horizontal_num <<")" << endl;
-        // cout << "vertical num is ("<< vertical_num <<")" << endl;
-        // cout << "The ratio is (" << ratio << ")" << endl;
         if (ratio >= 0.9)
         {
             cout << "Barrier is down"<< endl;
+            cout << "gradient is "<< gradient << endl;
         }
         else if (ratio <= 0.3)
         {
             cout <<  "Barrier is upright" << endl;
+            cout << "gradient is "<< gradient << endl;
         }
         else
         {
             cout << "The Barrier is moving" << endl;
+            cout << "gradient is "<< gradient << endl;
         }
     }
     else
@@ -245,20 +239,19 @@ void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_
     for( size_t i = 0; i < p_lines_array.data.size(); i++ )
     {
 
-        line_vector[i] = p_lines_array.data[i];
+        line_vector[i] = p_lines_array.data[i];//should not be removed
     }
 //     float gradient;
-    if (line_vector[2] - line_vector[0] == 0.0)
+    if (x1 - x2 == 0.0)
     {
-     gradient = 1000.0;
+     gradient = 1000000.0;
     }
        else
     {
-     gradient = (line_vector[3] - line_vector[1])/(line_vector[2] - line_vector[0]);
+     gradient = (double)(y2 - y1)/(x2 - x1);
     }
-       // cout<<"l[0]="<<l[0]<<" l[1]="<<l[1]<<" l[2]="<<l[2]<<" l[3]="<<l[3]<<" gradient="<<gradient <<endl;
-//        line( probabilistic_hough, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
-//        rectangle( probabilistic_hough, Point(l[0]+5, l[1]+10), Point(l[2]-5, l[3]-10), Scalar(255, 255, 0), 1, 1);
+    cout << "x1 = " << x1 << " y1 = " << y1 << " x2 = " << x2 << " y2 = " << y2 << endl;
+    cout << "gradient is "<< gradient << endl;
 }
  
 
@@ -277,36 +270,26 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
         return;
     }
 
-    // convert to something visible
-    Mat depth_img_msg(bridge->image.rows, bridge->image.cols, CV_32FC1);
-    Mat depth_img_msg2(bridge->image.rows, bridge->image.cols, CV_32FC1);
-    Mat depth_img_msg3(bridge->image.rows, bridge->image.cols, CV_8UC1);
-    float total_dis = 0;
-    int total_dis_num = 0;
-    //cout << depth_img << endl;
+    Mat     depth_img_msg(bridge->image.rows, bridge->image.cols, CV_8UC1),
+            depth_img_msg2(bridge->image.rows, bridge->image.cols, CV_32FC1);
+    float   barrier_height = 1.1, camera_height = 1.5; //110cm and 150cm
+    float   total_dis = 0;
+    int     total_dis_num = 0;
+
     for(int i = 0; i < bridge->image.rows; i++)
     {
-        float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
-        float* Ii = depth_img_msg.ptr< float>(i);//get ith row of img, index Ii
-        unsigned char * DDi = depth_img_msg3.ptr<unsigned char>(i);
+        float*          Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
+        unsigned char*  Ii = depth_img_msg.ptr<unsigned char>(i);
 
         for(int j = 0; j < bridge->image.cols; j++)
         {   
-            // cout << (unsigned int)Di[j]<<" ";
-
             if(Di[j]<min_range_)
             {
                 Di[j] = max_range_ ;
             }
-       
-            Ii[j] = (float) (255*((Di[j] - min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
-            Ii[j] = (float) (255 - Ii[j]);
-
-            
-            DDi[j] = (unsigned char)(255*((Di[j] - min_range_)/(max_range_-min_range_))); 
-            DDi[j] = (unsigned char)(255-DDi[j]);
-
-            //cout<<Ii[j]<<","<<(float)DDi[j]<<endl;
+           
+            Ii[j] = (unsigned char)(255*((Di[j] - min_range_)/(max_range_-min_range_))); 
+            Ii[j] = (unsigned char)(255-Ii[j]);
         }   
     }
 
@@ -316,41 +299,30 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
         float* Ii = depth_img_msg2.ptr<float>(i);
         for(int j = x1; j < (x2); j++)
         {
-            //cout<<"element:"<<bridge->image.at<float>(i,j)<<endl;
-            //cout<<Di[j]<<endl;
-            Ii[j] = (float) (255*((Di[j] - min_range_)/(max_range_-min_range_))); //normalize and copy Di to Ii
-            Ii[j] = (float) (255- Ii[j]);
-            //cout << (unsigned int)Ii[j]<<endl;
-            
-            //cout << "Di[j] = "<< Di[j]<<endl;
-            if ( Di[j] > 0 && Di[j] < 10.0) // && (float) (Ii[j]) > 80)
+            if ( Di[j] > 0 && Di[j] < 10.0) 
             {
-                //cout << "Di[j] = "<< Di[j] <<" Ii[j] = " << (float) Ii[j] <<endl;
                 total_dis = total_dis + Di[j];
                 total_dis_num  = total_dis_num + 1;
             }
         }
     }
-    //cout<<"x1:"<<x1<<"x2:"<<x2<<"y1:"<<y1<<"y2:"<<y2<<endl;
-    // cout << (float) bridge->image.at<float>(100,100) << endl; 
-    float barrier_height = 1.1; //110cm
-    float camera_height = 1.5; //150cm
+ 
     mean_dis = total_dis/(float)total_dis_num;
     float mean_horizontal_dis = sqrt(pow(mean_dis, 2) - pow((camera_height - barrier_height), 2));
     
-    // if (mean_horizontal_dis <= 6)
-    // {
+    if (mean_horizontal_dis <= 8)
+    {
         cout << "The average distance is "<< mean_horizontal_dis << endl; 
-        // cout << "The total distance number is "<< total_dis_num << endl;        
-    // }
+        cout << "The total distance number is "<< total_dis_num << endl;        
+    }
      
-    // else
-    // {
-    //     cout << "The barrier is either too far or NaN" << endl;
-    // }     
+    else
+    {
+        cout << "The barrier is either too far or NaN" << endl;
+    }     
 
 
-        filt_img = Depth_viewer::img_filter(depth_img_msg3);
+        filt_img = Depth_viewer::img_filter(depth_img_msg);
         //Depth_viewer::rot90(filt_img, 2);
         horizontal_img = Depth_viewer::horizontal_line_detection(filt_img);
         vertical_img = Depth_viewer::vertical_line_detection(filt_img);
@@ -396,12 +368,6 @@ int main( int argc, char* argv[] )
 
     Depth_viewer depth_viewer;
     // Hough_line hough_line;
-
-    nh.param("min_range", depth_viewer.min_range_, 0.5);
-    nh.param("max_range", depth_viewer.max_range_, 20.5);
-    
-    cout<<depth_viewer.min_range_<<endl;
-    cout<<depth_viewer.max_range_<<endl;
 
     ros::Subscriber depth_sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depth_callback, &depth_viewer);
     ros::Subscriber hough_line_sub = n.subscribe("/hough_line", 3, &Depth_viewer::hough_line_callback, &depth_viewer);
