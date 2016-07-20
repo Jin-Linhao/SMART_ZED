@@ -9,7 +9,8 @@
 #include <iostream>
 #include <iomanip>
 #include <std_msgs/Int32MultiArray.h>
-
+#include <std_msgs/Int32.h>
+#include <std_msgs/Float64.h>
 
 using namespace std;
 using namespace cv;
@@ -41,6 +42,8 @@ class Depth_viewer
     Mat  getROI(Mat);
     void identify(Mat, Mat);
     int  check_ROI();
+    void Pub_flag();
+    void Pub_dis();
     // void detection();
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
@@ -52,6 +55,12 @@ class Depth_viewer
     Vec4i line_vector;
     int   x1, y1, x2, y2, thresholding_value;;
     // Mat depth_img;
+
+    //ros functions
+    ros::Subscriber depth_sub;
+    ros::Subscriber hough_line_sub;
+    ros::Publisher  pub_flag;
+    ros::Publisher  pub_dis;
 };
 
 
@@ -204,34 +213,34 @@ void Depth_viewer::identify(Mat horizontal, Mat vertical)
 {
     float horizontal_num = countNonZero(horizontal), 
           vertical_num = countNonZero(vertical),
-          ratio = horizontal_num/(horizontal_num + vertical_num +1);
-    int   area  = (x2 - x1)*(y2 - y1)*0.0025;
+          ratio = horizontal_num/(horizontal_num + vertical_num);
+    int   area  = (x2 - x1)*(y2 - y1)*0.1;
     // cout <<"area: " << area <<endl;
+    // cout <<"horizontal_num: " << horizontal_num <<endl;
 
-    if (vertical_num >= area)
+    if (horizontal_num >= area)
     {
-        if (ratio >= 0.9)
+        if (ratio >= 0.9 && gradient > 5)
         {
             cout << "Barrier is down"<< endl;
-            cout << "gradient is "<< gradient << endl;
+            // cout << "gradient is "<< gradient << endl;
         }
-        else if (ratio <= 0.3)
-        {
-            cout <<  "Barrier is upright" << endl;
-            cout << "gradient is "<< gradient << endl;
-        }
-        else
-        {
-            cout << "The Barrier is moving" << endl;
-            cout << "gradient is "<< gradient << endl;
-        }
+    }
+    else if (ratio < 0.9 && ratio > 0.3 && gradient >0.2 && gradient < 5)
+    {
+        cout <<  "Barrier is moving" << endl;
+        // cout << "gradient is "<< gradient << endl;
+    }
+    else if (ratio < 0.3 && gradient < 0.2)
+    {
+        cout << "The Barrier is up" << endl;
+        // cout << "gradient is "<< gradient << endl;
     }
     else
     {
-        cout << "No barrier detected" << endl;
+        cout << "undetermined situation" << endl;
     }
 }
-
 
 
 void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_array)
@@ -250,8 +259,8 @@ void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_
     {
      gradient = (double)(y2 - y1)/(x2 - x1);
     }
-    cout << "x1 = " << x1 << " y1 = " << y1 << " x2 = " << x2 << " y2 = " << y2 << endl;
-    cout << "gradient is "<< gradient << endl;
+    // cout << "x1 = " << x1 << " y1 = " << y1 << " x2 = " << x2 << " y2 = " << y2 << endl;
+    // cout << "gradient is "<< gradient << endl;
 }
  
 
@@ -313,7 +322,8 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     if (mean_horizontal_dis <= 8)
     {
         cout << "The average distance is "<< mean_horizontal_dis << endl; 
-        cout << "The total distance number is "<< total_dis_num << endl;        
+        cout << endl;
+        // cout << "The total distance number is "<< total_dis_num << endl;        
     }
      
     else
@@ -334,6 +344,7 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
         horizontal_seg = Depth_viewer::getROI(horizontal_img);
         Depth_viewer::image_show(filt_img, vertical_seg, horizontal_seg, horizontal_img, vertical_img);
         Depth_viewer::identify(vertical_seg, horizontal_seg);
+        Depth_viewer::Pub_flag();
 }
     // Depth_viewer::segmentation(filt_img, img);
     // Depth_viewer::laplacian(filt_img);
@@ -359,6 +370,23 @@ void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg
 
 
 
+void Depth_viewer::Pub_flag()
+{
+    std_msgs::Int32 g_flag;
+    g_flag.data = 1;
+    pub_flag.publish(g_flag);
+}
+
+
+
+void Depth_viewer::Pub_dis()
+{
+    std_msgs::Float64 g_dis;
+    g_dis.data = 10.0;
+    pub_dis.publish(g_dis);
+}
+
+
 
 int main( int argc, char* argv[] )
 {
@@ -369,8 +397,10 @@ int main( int argc, char* argv[] )
     Depth_viewer depth_viewer;
     // Hough_line hough_line;
 
-    ros::Subscriber depth_sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depth_callback, &depth_viewer);
-    ros::Subscriber hough_line_sub = n.subscribe("/hough_line", 3, &Depth_viewer::hough_line_callback, &depth_viewer);
+    depth_viewer.depth_sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depth_callback, &depth_viewer);
+    depth_viewer.hough_line_sub = n.subscribe("/hough_line", 3, &Depth_viewer::hough_line_callback, &depth_viewer);
+    depth_viewer.pub_flag = n.advertise<std_msgs::Int32>("gantry_flag",100);
+    depth_viewer.pub_dis = n.advertise<std_msgs::Float64>("gantry_dis",100);
 
     //depth_viewer.detection();
     ros::spin();
