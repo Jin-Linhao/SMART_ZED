@@ -74,6 +74,8 @@ void Line_detection::hough_line_callback( const sensor_msgs::ImageConstPtr& imag
        return;
      }
 
+   imshow("rgb", bridge->image);
+   waitKey(1);
    /// Pass the image to gray
    cvtColor( bridge->image, probabilistic_hough, COLOR_RGB2GRAY );
 

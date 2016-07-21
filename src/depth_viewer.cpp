@@ -12,7 +12,7 @@
 #include <deque>
 
 #include <std_msgs/Int32MultiArray.h>
-#include <std_msgs/Int32.h>
+#include <std_msgs/Int64.h>
 #include <std_msgs/Float64.h>
 
 using namespace std;
@@ -32,26 +32,28 @@ class Depth_viewer
          line_vector[2] = 330;
          line_vector[3] = 450;
 
-         x1 = 230;
-         y1 = 50;
-         x2 = 330;
-         y2 = 450;
+         x1 = line_vector[0] ;
+         y1 = line_vector[1];
+         x2 = line_vector[2];
+         y2 = line_vector[3];
+
          thresholding_value = 130;
+         mean_horizontal_dis = 0.0;
 		}
 
     //member function declaration
 	Mat  img_filter(Mat);
 	void depth_callback(const sensor_msgs::ImageConstPtr&);
     void hough_line_callback(const std_msgs::Int32MultiArray&);
-	void image_show(Mat, Mat, Mat, Mat, Mat);
+	void image_show(Mat, Mat, Mat);
     Mat  horizontal_line_detection(Mat);
     Mat  vertical_line_detection(Mat);
     void rot90(Mat &, int);
     Mat  getROI(Mat);
     void identify(Mat, Mat);
     int  check_ROI();
-    // void Pub_flag();
-    // void Pub_dis();
+    void Pub_flag();
+    void Pub_dis();
     // void detection();
     // void segmentation(Mat, Mat);
     // void laplacian(Mat);
@@ -59,7 +61,7 @@ class Depth_viewer
     //global variables
     Mat   img_threshold,  img_blur,     filt_img,       img_fast;
     Mat   horizontal_img, vertical_img, horizontal_seg, vertical_seg;
-    float min_range_,     max_range_,   gradient,       mean_dis; 
+    float min_range_,     max_range_,   gradient,       mean_dis,       mean_horizontal_dis; 
     Vec4i line_vector;
     int   x1, y1, x2, y2, thresholding_value;;
     // Mat depth_img;
@@ -69,8 +71,8 @@ class Depth_viewer
     //ros functions
     ros::Subscriber depth_sub;
     ros::Subscriber hough_line_sub;
-    // ros::Publisher  pub_flag;
-    // ros::Publisher  pub_dis;
+    ros::Publisher  pub_flag;
+    ros::Publisher  pub_dis;
 };
 
 
@@ -182,24 +184,12 @@ Mat Depth_viewer::getROI(Mat src)
     {
             y1 = line_vector[3] - 5, y2 = line_vector[1] + 5;
     }
-    cout << "x1:" << x1 << " y1P:" << y1 << " x2:" << x2 << " y2:" << y2 << endl;               
+    // cout << "x1:" << x1 << " y1P:" << y1 << " x2:" << x2 << " y2:" << y2 << endl;               
     Depth_viewer::check_ROI();
     int width = x2 - x1,  
         height = y2 - y1;
 
-        ROI = src(Rect(x1, y1, width, height));
-
-      
-    // x1 = line_vector[0], y1 = line_vector[1],  //x-start, y-start
-    // x2 = line_vector[2], y2 = line_vector[3];  //x-end, y-end     
-    // check_ROI();
-    // // int width = x2 - x1,  
-	   // //  height = y2 - y1;
-
-    //     Rect rect_roi(Point(x1, y1), Point(x2, y2));
-    //     cout << rect_roi.x << " " << rect_roi.y <<  endl;
-    //     cout << rect_roi.height << " " << rect_roi.width <<  endl;
-	   //  ROI = src(rect_roi);
+    ROI = src(Rect(x1, y1, width, height));
 
     return ROI;
 }
@@ -255,8 +245,7 @@ void Depth_viewer::identify(Mat horizontal, Mat vertical)
 
 
 void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_array)
-{
-    cout<<"hough line callback now"<<endl;
+{   
     for( size_t i = 0; i < p_lines_array.data.size(); i++ )
     {
 
@@ -273,14 +262,12 @@ void Depth_viewer::hough_line_callback(const std_msgs::Int32MultiArray& p_lines_
     }
     // cout << "x1 = " << x1 << " y1 = " << y1 << " x2 = " << x2 << " y2 = " << y2 << endl;
     // cout << "gradient is "<< gradient << endl;
-    cout<<"hough line callback end"<<endl;
 }
  
 
 void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)         //?????
 {
     // convert to cv image
-    cout<<"depth callback now"<<endl;
     cv_bridge::CvImagePtr bridge;
     try
     {
@@ -316,8 +303,8 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
         }   
     }
 
-    cout<<"rows:"<<bridge->image.rows<<" cols:"<<bridge->image.cols<<endl;
-    cout<<"y1: "<<y1<<" y2:"<<y2<<" x1: "<<x1<<" x2: "<<x2<<endl;
+    // cout<<"rows:"<<bridge->image.rows<<" cols:"<<bridge->image.cols<<endl;
+    // cout<<"y1: "<<y1<<" y2:"<<y2<<" x1: "<<x1<<" x2: "<<x2<<endl;
     for (int i = y1; i < (y2); i++)
     {
         float* Di = bridge->image.ptr<float>(i);//get ith row of original image, index Di
@@ -333,18 +320,23 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
     }
  
     mean_dis = total_dis/(float)total_dis_num;
-    float mean_horizontal_dis = sqrt(pow(mean_dis, 2) - pow((camera_height - barrier_height), 2));
-    
+    mean_horizontal_dis = sqrt(pow(mean_dis, 2) - pow((camera_height - barrier_height), 2));
+    std_msgs::Float64 g_dis;
+
     if (mean_horizontal_dis <= 8)
     {
-        cout << "The average distance is "<< mean_horizontal_dis << endl; 
+        cout << "The average distance is "<< mean_horizontal_dis << endl;
+        g_dis.data = mean_horizontal_dis;
+        pub_dis.publish(g_dis);
+        // cout << "The gradient is " << gradient <<endl;
         cout << endl;
         // cout << "The total distance number is "<< total_dis_num << endl;        
-    }
-     
+    } 
     else
     {
         cout << "The barrier is either too far or NaN" << endl;
+        g_dis.data = 20.0;
+        pub_dis.publish(g_dis);
     }     
 
 
@@ -358,10 +350,9 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
         // Depth_viewer::rot90(horizontal_img, 2);   
         vertical_seg  = Depth_viewer::getROI(vertical_img);
         horizontal_seg = Depth_viewer::getROI(horizontal_img);
-        Depth_viewer::image_show(filt_img, vertical_seg, horizontal_seg, horizontal_img, vertical_img);
+        Depth_viewer::image_show(filt_img, vertical_seg, horizontal_seg);
         Depth_viewer::identify(vertical_seg, horizontal_seg);
-        cout<<"depth callback end"<<endl;
-        // Depth_viewer::Pub_flag();
+        Depth_viewer::Pub_flag();
 }
     // Depth_viewer::segmentation(filt_img, img);
     // Depth_viewer::laplacian(filt_img);
@@ -369,7 +360,7 @@ void Depth_viewer::depth_callback(const sensor_msgs::ImageConstPtr& image)      
 
 
 
-void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg, Mat horizontal, Mat vertical)
+void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg)
 {
     if (!img_show.empty() && !horizontal_seg.empty() && !vertical_seg.empty())
 	{
@@ -379,49 +370,61 @@ void Depth_viewer::image_show(Mat img_show, Mat horizontal_seg, Mat vertical_seg
     	imshow("image_proc", img_show);
     	imshow("horizontal_seg", horizontal_seg);
     	imshow("vertical_seg", vertical_seg);
-    	// imshow("horizontal", horizontal);    
-    	// imshow("vertical", vertical);
+
 	}
 	waitKey(1);
 }
 
 
 
-// void Depth_viewer::Pub_flag()
-// {
-    // std_msgs::Int32 g_flag;
-    // g_flag.data = 1;
-    // float total_status = 0;
+void Depth_viewer::Pub_flag()
+{
+    std_msgs::Int64 g_flag;
+    g_flag.data = -1;
+    float total_status = 0;
     // pub_flag.publish(g_flag);
 
 
-    // cout << "size of the arrya is " << flag_status.size() << endl;
-    // if (flag_status.size() > 29)
-    // {
-    //     flag_status.pop_front();
-    //     cout << flag_status.at(28) << endl;
+    cout << "size of the array is " << flag_status.size() << endl;
+    if (flag_status.size() > 29)
+    {
+        flag_status.pop_front();
+        // cout << flag_status.at(28) << endl;
+        for (int i=0; i<flag_status.size(); i++)
+        {
+            cout << flag_status.at(i) << " "; 
+            total_status = total_status + flag_status.at(i);
 
-    // }
-    // if (flag_status.size() == 30)
-    // {
-    //     cout <<" reach to 50" << endl;
-    //     for (int i=0; i<flag_status.size(); i++)
-    //     {
-    //         cout <<  "inside for loop"  <<endl;
-    //         // cout << flag_status.at(i) << endl;
-    //         // total_status = total_status + flag_status.at(i);
-    //     }
-    // }
-// }
+        }
+        cout << endl;
+        cout << "the total_status" << total_status << endl;
+        if (total_status <= 0)
+        {
+            g_flag.data = 0;
+            pub_flag.publish(g_flag);
+        }
+        else if (total_status > 0)
+        {
+            g_flag.data = 1;
+            pub_flag.publish(g_flag);
+        }
+        else
+        {
+            cout << "cannot determine action" << endl;
+            g_flag.data = 0;
+            pub_flag.publish(g_flag);
+        }
+    }
+}
 
 
 
-// void Depth_viewer::Pub_dis()
-// {
-//     std_msgs::Float64 g_dis;
-//     g_dis.data = 10.0;
-//     pub_dis.publish(g_dis);
-// }
+void Depth_viewer::Pub_dis()
+{
+    // std_msgs::Float64 g_dis;
+    // g_dis.data = mean_horizontal_dis;
+    // pub_dis.publish(g_dis);
+}
 
 
 
@@ -431,18 +434,15 @@ int main( int argc, char* argv[] )
     ros::NodeHandle n;
     ros::NodeHandle nh("~");
 
-    cout<<"depth viewer intializing"<<endl;
     Depth_viewer depth_viewer;
     // Hough_line hough_line;
 
     depth_viewer.depth_sub = n.subscribe("/camera/depth/image_rect_color", 3, &Depth_viewer::depth_callback, &depth_viewer);
     depth_viewer.hough_line_sub = n.subscribe("/hough_line", 3, &Depth_viewer::hough_line_callback, &depth_viewer);
-    // depth_viewer.pub_flag = n.advertise<std_msgs::Int32>("gantry_flag",100);
-    // depth_viewer.pub_dis = n.advertise<std_msgs::Float64>("gantry_dis",100);
+    depth_viewer.pub_flag = n.advertise<std_msgs::Int64>("gantry_flag",100);
+    depth_viewer.pub_dis = n.advertise<std_msgs::Float64>("gantry_dis",100);
 
     //depth_viewer.detection();
-
-    cout<<"spin is now calling"<<endl;
 
     ros::spin();
 }
