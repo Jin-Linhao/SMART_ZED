@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-	<node pkg = "rosbag" type = "play" name = "player" args = "--clock -s 17 -l -u 9 /home/eee/catkin_ws/src/SMART_ZED/bag/450cm.bag" />
+	<node pkg = "rosbag" type = "play" name = "player" args = "--clock -s 15 -l -u 15 /home/eee/catkin_ws/src/SMART_ZED/bag/450cm.bag" />
 	<node pkg="zed_smart" type="depth_viewer_node" name="depth_viewer_node" output="screen" />
 	<node pkg="zed_smart" type="new_hough_node" name="new_hough_node" output="screen"/>
 </launch>

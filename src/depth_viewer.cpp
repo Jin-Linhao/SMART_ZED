@@ -27,9 +27,9 @@ class Depth_viewer
 		 min_range_ = 0.5;
 		 max_range_ = 20.5; 
 
-         line_vector[0] = 230;
+         line_vector[0] = 400;
          line_vector[1] = 50;
-         line_vector[2] = 330;
+         line_vector[2] = 480;
          line_vector[3] = 450;
 
          x1 = line_vector[0] ;
