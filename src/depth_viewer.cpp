@@ -398,12 +398,12 @@ void Depth_viewer::Pub_flag()
         }
         cout << endl;
         cout << "the total_status" << total_status << endl;
-        if (total_status <= 0)
+        if (total_status <= 5)
         {
             g_flag.data = 0;
             pub_flag.publish(g_flag);
         }
-        else if (total_status > 0)
+        else if (total_status > 5)
         {
             g_flag.data = 1;
             pub_flag.publish(g_flag);
