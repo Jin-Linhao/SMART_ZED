@@ -10,3 +10,6 @@
 ## Or view the original message
     roslaunch zed_wrapper zed.launch
     rosrun rviz rviz
+
+## For the video demo
+    https://www.youtube.com/watch?v=2BxOQT-WOzU
